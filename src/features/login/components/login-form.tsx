@@ -1,0 +1,130 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Lock, Mail } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { loginAction } from "@/features/auth/action";
+
+export default function LoginForm({ ip }: { ip: ReactNode }) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    // For now only the email is checked. Add the password check when the API is ready.
+    if (!email.trim()) {
+      setError("Please enter your email ID");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await loginAction(email.trim(), remember);
+      if (result.success) {
+        router.replace("/dashboard");
+        return; // keep the button disabled while redirecting
+      }
+      setError(result.error ?? "Login failed. Please try again.");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-md">
+      <div className="overflow-hidden rounded-xl bg-white shadow-md">
+        <div className="flex flex-col items-center border-b px-6 py-6">
+          <Image
+            src="/logo.png"
+            alt="AP Colour Academy"
+            width={180}
+            height={180}
+            priority
+            className="h-auto w-44"
+          />
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+            Login
+          </h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5 p-6">
+          <p className="text-center text-slate-600">
+            Sign in to start your session
+          </p>
+
+          <div className="flex">
+            <Input
+              type="email"
+              placeholder="Email ID"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 rounded-r-none bg-slate-50"
+            />
+            <span className="flex w-12 items-center justify-center rounded-r-md border border-l-0 bg-slate-100">
+              <Mail className="h-4 w-4" />
+            </span>
+          </div>
+
+          <div className="flex">
+            <Input
+              type="password"
+              placeholder="Password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 rounded-r-none bg-slate-50"
+            />
+            <span className="flex w-12 items-center justify-center rounded-r-md border border-l-0 bg-slate-100">
+              <Lock className="h-4 w-4" />
+            </span>
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember"
+                  checked={remember}
+                  onCheckedChange={(v) => setRemember(v === true)}
+                />
+                <Label htmlFor="remember" className="font-semibold">
+                  Remember Me
+                </Label>
+              </div>
+              <a
+                href="#"
+                className="block text-sm text-blue-600 hover:underline"
+              >
+                I forgot my password
+              </a>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-500 px-8 hover:bg-blue-600"
+            >
+              {loading ? "Signing in…" : "Sign In"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
