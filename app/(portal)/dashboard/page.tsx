@@ -65,7 +65,7 @@ export default function DashboardPage() {
       : 0;
 
   const stats = [
-    { label: "Users/Participants", href: "/users", icon: Users, color: BLUE, value: data.users },
+    { label: "Accounts", href: "/accounts", icon: Users, color: BLUE, value: data.users },
     { label: "Active Trainers", href: "/trainers", icon: GraduationCap, color: BLUE, value: activeTrainers },
     { label: "Links Shared", href: "/zoom/links", icon: Link2, color: YELLOW, value: data.linksShared },
     {

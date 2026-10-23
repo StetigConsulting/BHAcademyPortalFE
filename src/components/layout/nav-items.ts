@@ -34,7 +34,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: "Courses List", href: "/courses", icon: List, permission: "courses.read" },
       { label: "Categories List", href: "/categories", icon: Layers, permission: "categories.read" },
-      { label: "Users List", href: "/users", icon: Users, permission: "users.read" },
+      { label: "Accounts", href: "/accounts", icon: Users, permission: "users.read" },
       { label: "FAQs", href: "/faqs", icon: HelpCircle, permission: "faqs.read" },
     ],
   },

@@ -20,6 +20,7 @@ const ROUTE_PERMISSIONS: { pattern: RegExp; permission: string | string[] }[] = 
   { pattern: /^\/categories(\/.*)?$/, permission: "categories.read" },
   { pattern: /^\/courses(\/.*)?$/, permission: "courses.read" },
   { pattern: /^\/users(\/.*)?$/, permission: "users.read" },
+  { pattern: /^\/accounts(\/.*)?$/, permission: "users.read" },
   { pattern: /^\/dashboard(\/.*)?$/, permission: "dashboard.read" },
 ];
 
