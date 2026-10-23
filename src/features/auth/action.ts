@@ -53,7 +53,8 @@ export async function loginAction(
       body: JSON.stringify({ email: normalizedEmail, password }),
       cache: "no-store",
     });
-  } catch {
+  } catch (err) {
+    console.error("Login fetch error:", err);
     return {
       success: false,
       error: "Unable to connect to the login service. Please try again.",
@@ -70,17 +71,30 @@ export async function loginAction(
     };
   }
 
-  let tokens: unknown;
+  let jsonResponse: unknown;
   try {
-    tokens = await response.json();
-  } catch {
+    jsonResponse = await response.json();
+  } catch (err) {
+    console.error("Failed to parse JSON response:", err);
     return {
       success: false,
       error: "The login service returned an invalid response.",
     };
   }
 
+  // Check if tokens are enclosed under `data` or returned directly at top level
+  let tokens: unknown = jsonResponse;
+  if (
+    typeof jsonResponse === "object" &&
+    jsonResponse !== null &&
+    "data" in jsonResponse &&
+    (jsonResponse as Record<string, unknown>).data
+  ) {
+    tokens = (jsonResponse as Record<string, unknown>).data;
+  }
+
   if (!isTokenResponse(tokens)) {
+    console.error("Login response failed isTokenResponse validation:", jsonResponse);
     return {
       success: false,
       error: "The login service returned an invalid response.",

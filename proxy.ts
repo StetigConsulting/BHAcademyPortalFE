@@ -8,6 +8,20 @@ import {
   buildAuthCookies,
   type TokenResponse,
 } from "@/lib/auth-cookies";
+import { extractAuthUser, hasPermission } from "@/lib/auth-jwt";
+
+// Map routes to required permissions
+const ROUTE_PERMISSIONS: { pattern: RegExp; permission: string | string[] }[] = [
+  { pattern: /^\/faqs\/new(\/.*)?$/, permission: "faqs.create" },
+  { pattern: /^\/faqs\/[^/]+\/edit(\/.*)?$/, permission: "faqs.update" },
+  { pattern: /^\/faqs(\/.*)?$/, permission: "faqs.read" },
+  { pattern: /^\/categories\/new(\/.*)?$/, permission: "categories.create" },
+  { pattern: /^\/categories\/[^/]+\/edit(\/.*)?$/, permission: "categories.update" },
+  { pattern: /^\/categories(\/.*)?$/, permission: "categories.read" },
+  { pattern: /^\/courses(\/.*)?$/, permission: "courses.read" },
+  { pattern: /^\/users(\/.*)?$/, permission: "users.read" },
+  { pattern: /^\/dashboard(\/.*)?$/, permission: "dashboard.read" },
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -42,7 +56,30 @@ export async function proxy(request: NextRequest) {
   } else if (isLoginPage || pathname === "/") {
     response = NextResponse.redirect(new URL("/dashboard", request.url));
   } else {
-    response = NextResponse.next({ request });
+    // Route-level permission authorization check
+    const user = accessToken ? extractAuthUser(accessToken) : null;
+    const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+    let allowed = true;
+    for (const rule of ROUTE_PERMISSIONS) {
+      if (rule.pattern.test(pathname)) {
+        if (!hasPermission(userPerms, rule.permission)) {
+          allowed = false;
+          break;
+        }
+      }
+    }
+
+    if (!allowed) {
+      if (isApi) {
+        response = NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      } else {
+        // Redirect to dashboard with forbidden flag or access denied
+        response = NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    } else {
+      response = NextResponse.next({ request });
+    }
   }
 
   if (fresh) {

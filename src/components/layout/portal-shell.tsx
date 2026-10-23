@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { Navbar } from "./navbar";
@@ -12,7 +12,9 @@ function ShellBody({ children, user }: { children: ReactNode; user: ReactNode })
 
   return (
     <div className="min-h-screen">
-      <Sidebar user={user} />
+      <Suspense fallback={<aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r bg-white lg:block" />}>
+        <Sidebar user={user} />
+      </Suspense>
 
       {/* Content shifts right only on desktop, when the sidebar is visible */}
       <div

@@ -15,7 +15,11 @@ async function callRefresh(refreshToken: string): Promise<TokenResponse | null> 
       cache: "no-store",
     });
     if (!res.ok) return null;
-    return (await res.json()) as TokenResponse;
+    const body: unknown = await res.json();
+    if (body && typeof body === "object" && "data" in body && (body as Record<string, unknown>).data) {
+      return (body as Record<string, unknown>).data as TokenResponse;
+    }
+    return body as TokenResponse;
   } catch {
     return null;
   }

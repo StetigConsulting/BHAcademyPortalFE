@@ -6,7 +6,8 @@ import { ACCESS_COOKIE } from "@/lib/auth-cookies";
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    public data?: unknown
   ) {
     super(message);
   }
@@ -25,9 +26,26 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     },
     cache: "no-store",
   });
-  console.log("LOGIN API →", `${config.apiBaseUrl}/auth/login`, res.status);
 
-  if (!res.ok) throw new ApiError(res.status, `Request failed: ${res.status}`);
+  if (!res.ok) {
+    let errorDetails = `Request failed: ${res.status}`;
+    let errBody: unknown = null;
+    try {
+      errBody = await res.json();
+      if (errBody && typeof errBody === "object") {
+        const obj = errBody as Record<string, unknown>;
+        if (typeof obj.message === "string") {
+          errorDetails = obj.message;
+        } else if (typeof obj.error === "string") {
+          errorDetails = obj.error;
+        }
+      }
+    } catch {
+      // not JSON
+    }
+    console.error(`API Error [${res.status}] on ${path}:`, errBody || errorDetails);
+    throw new ApiError(res.status, errorDetails, errBody);
+  }
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

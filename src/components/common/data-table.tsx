@@ -20,9 +20,18 @@ export type Column<T> = {
   className?: string;
 };
 
+type PaginationProps = {
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  onPageChange: (newPage: number) => void;
+};
+
 type DataTableProps<T> = {
   title: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  logoSrc?: string;
   columns: Column<T>[];
   data: T[];
   getRowId: (row: T) => string | number;
@@ -30,11 +39,14 @@ type DataTableProps<T> = {
   search?: string;
   onSearchChange?: (value: string) => void;
   emptyMessage?: string;
+  action?: ReactNode;
+  pagination?: PaginationProps;
 };
 
 export function DataTable<T>({
   title,
   icon: Icon,
+  logoSrc,
   columns,
   data,
   getRowId,
@@ -42,15 +54,22 @@ export function DataTable<T>({
   search,
   onSearchChange,
   emptyMessage = "No records found",
+  action,
+  pagination,
 }: DataTableProps<T>) {
   return (
     <section className="overflow-hidden rounded-xl bg-white shadow-sm">
       {/* Tab-style title strip */}
-      <div className="border-b px-2 pt-2">
-        <div className="inline-flex items-center gap-2 border-t-2 border-blue-500 px-4 py-3 text-sm font-medium text-slate-700">
-          <Icon className="h-4 w-4" />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-2 pt-2">
+        <div className="inline-flex items-center gap-2 border-t-2 border-blue-500 px-4 py-2.5 text-sm font-medium text-slate-700">
+          {logoSrc ? (
+            <img src={logoSrc} alt={title} className="h-6 w-auto object-contain" />
+          ) : Icon ? (
+            <Icon className="h-4 w-4" />
+          ) : null}
           {title}
         </div>
+        {action && <div className="px-3 pb-2">{action}</div>}
       </div>
 
       <div className="p-4 sm:p-6">
@@ -105,6 +124,46 @@ export function DataTable<T>({
             )}
           </TableBody>
         </Table>
+
+        {pagination && pagination.totalPages > 0 && (
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
+            <div className="text-xs text-slate-500">
+              Showing{" "}
+              <span className="font-medium text-slate-700">
+                {Math.min((pagination.page - 1) * pagination.pageSize + 1, pagination.totalElements)}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-slate-700">
+                {Math.min(pagination.page * pagination.pageSize, pagination.totalElements)}
+              </span>{" "}
+              of <span className="font-medium text-slate-700">{pagination.totalElements}</span> entries
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => pagination.onPageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1 || loading}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <div className="px-2 text-xs font-medium text-slate-700">
+                Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => pagination.onPageChange(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages || loading}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
