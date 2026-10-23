@@ -36,7 +36,6 @@ const columns: Column<Category>[] = [
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
 
-  // TODO: replace with your API data
   const categories: Category[] = [];
   const loading = false;
 

@@ -68,7 +68,6 @@ export function DataTable<T>({
           </div>
         )}
 
-        {/* The shadcn Table already wraps itself in an overflow-x-auto container */}
         <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow className="border-b-2 border-blue-500 hover:bg-transparent">

@@ -3,33 +3,104 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-type LoginResult = { success: boolean; error?: string };
+import { config } from "@/config/env";
+import {
+  ALL_AUTH_COOKIES,
+  buildAuthCookies,
+  userCookie,
+  type TokenResponse,
+} from "@/lib/auth-cookies";
+
+type LoginResult = {
+  success: boolean;
+  error?: string;
+};
+
+function isTokenResponse(value: unknown): value is TokenResponse {
+  if (typeof value !== "object" || value === null) return false;
+
+  const tokens = value as Record<string, unknown>;
+  return (
+    typeof tokens.accessToken === "string" &&
+    tokens.accessToken.length > 0 &&
+    typeof tokens.refreshToken === "string" &&
+    tokens.refreshToken.length > 0 &&
+    typeof tokens.tokenType === "string" &&
+    typeof tokens.expiresInSeconds === "number" &&
+    Number.isFinite(tokens.expiresInSeconds) &&
+    tokens.expiresInSeconds > 0 &&
+    typeof tokens.issuedAt === "string"
+  );
+}
 
 export async function loginAction(
   email: string,
-  remember: boolean
+  password: string
 ): Promise<LoginResult> {
-  // TODO: call your login API here, return { success: false, error } on failure
-  // and use the real token from the response instead of "temporary-token".
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail || !password) {
+    return { success: false, error: "Please enter your email ID and password." };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${config.apiBaseUrl}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ email: normalizedEmail, password }),
+      cache: "no-store",
+    });
+  } catch {
+    return {
+      success: false,
+      error: "Unable to connect to the login service. Please try again.",
+    };
+  }
+
+  if (!response.ok) {
+    return {
+      success: false,
+      error:
+        response.status === 401 || response.status === 403
+          ? "Invalid email or password."
+          : "Unable to sign in at the moment. Please try again.",
+    };
+  }
+
+  let tokens: unknown;
+  try {
+    tokens = await response.json();
+  } catch {
+    return {
+      success: false,
+      error: "The login service returned an invalid response.",
+    };
+  }
+
+  if (!isTokenResponse(tokens)) {
+    return {
+      success: false,
+      error: "The login service returned an invalid response.",
+    };
+  }
 
   const cookieStore = await cookies();
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    ...(remember ? { maxAge: 60 * 60 * 24 * 30 } : {}), 
-  };
+  for (const cookie of buildAuthCookies(tokens)) {
+    cookieStore.set(cookie.name, cookie.value, cookie.options);
+  }
+  const emailCookie = userCookie(normalizedEmail);
+  cookieStore.set(emailCookie.name, emailCookie.value, emailCookie.options);
 
-  cookieStore.set("auth_token", "temporary-token", options);
-  cookieStore.set("user_email", email, options);
-
-  return { success: true };
+  redirect("/dashboard");
 }
 
 export async function logoutAction() {
   const cookieStore = await cookies();
-  cookieStore.delete("auth_token");
-  cookieStore.delete("user_email");
+  for (const name of ALL_AUTH_COOKIES) {
+    cookieStore.delete(name);
+  }
   redirect("/login");
 }

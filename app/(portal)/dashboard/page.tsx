@@ -15,7 +15,6 @@ const YELLOW = "bg-amber-400 text-slate-900";
 const GREEN = "bg-emerald-600 text-white";
 const RED = "bg-rose-600 text-white";
 
-// Add `value` to each item once your dashboard API is ready.
 const stats = [
   { label: "Users/Participants", href: "/users", icon: Users, color: BLUE },
   { label: "Links Shared", href: "/zoom/links", icon: Link2, color: YELLOW },

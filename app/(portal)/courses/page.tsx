@@ -43,7 +43,6 @@ const columns: Column<Course>[] = [
 export default function CoursesPage() {
   const [search, setSearch] = useState("");
 
-  // TODO: replace with your API data (useEffect + fetch, React Query, etc.)
   const courses: Course[] = [];
   const loading = false;
 
