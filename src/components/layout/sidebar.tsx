@@ -3,13 +3,85 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserRound } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronDown, UserRound } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { navSections } from "./nav-items";
+import { navSections, type NavSection } from "./nav-items";
 import { useSidebar } from "./sidebar-context";
+
+function CollapsibleNavSection({
+  section,
+  pathname,
+  closeMobile,
+  can,
+}: {
+  section: NavSection;
+  pathname: string;
+  closeMobile: () => void;
+  can: (perm: string | string[]) => boolean;
+}) {
+  const visibleItems = section.items.filter((item) =>
+    item.permission ? can(item.permission) : true
+  );
+
+  const isAnyChildActive = visibleItems.some(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  );
+
+  const [isOpen, setIsOpen] = useState(true);
+
+  if (visibleItems.length === 0) return null;
+
+  const Icon = section.icon;
+
+  return (
+    <div className="mt-3 border-t pt-3">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-200 transition-colors"
+      >
+        <span className="flex items-center gap-2.5">
+          {Icon && <Icon className="h-4 w-4 text-slate-700" />}
+          <span>{section.title}</span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-slate-600 transition-transform duration-200",
+            isOpen ? "rotate-0" : "-rotate-90"
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <ul className="mt-1 space-y-0.5 pl-2">
+          {visibleItems.map(({ label, href, icon: ItemIcon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  onClick={closeMobile}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  )}
+                >
+                  <ItemIcon className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function Sidebar({ user }: { user: ReactNode }) {
   const pathname = usePathname();
@@ -58,6 +130,18 @@ export function Sidebar({ user }: { user: ReactNode }) {
         {/* Links (scrolls if the screen is short) */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {navSections.map((section, i) => {
+            if (section.collapsible) {
+              return (
+                <CollapsibleNavSection
+                  key={section.title || i}
+                  section={section}
+                  pathname={pathname}
+                  closeMobile={closeMobile}
+                  can={can}
+                />
+              );
+            }
+
             // Filter section items according to user permissions
             const visibleItems = section.items.filter((item) =>
               item.permission ? can(item.permission) : true
@@ -101,4 +185,4 @@ export function Sidebar({ user }: { user: ReactNode }) {
       </aside>
     </>
   );
-}
+}

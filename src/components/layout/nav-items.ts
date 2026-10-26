@@ -1,13 +1,21 @@
 import {
+  ArrowRight,
   BarChart3,
+  Calendar,
   ClipboardList,
   GraduationCap,
   HelpCircle,
+  Image as ImageIcon,
+  Languages,
   Layers,
   LayoutDashboard,
   Lightbulb,
   Link2,
   List,
+  MapPin,
+  Settings,
+  ShieldCheck,
+  Sliders,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +29,8 @@ export type NavItem = {
 
 export type NavSection = {
   title?: string;
+  collapsible?: boolean;
+  icon?: LucideIcon;
   items: NavItem[];
 };
 
@@ -57,4 +67,20 @@ export const navSections: NavSection[] = [
       { label: "Assessment Summary", href: "/reports/summary", icon: BarChart3, permission: "audit.read" },
     ],
   },
-];
+  {
+    title: "Settings & Masters",
+    collapsible: true,
+    icon: Settings,
+    items: [
+      { label: "Configuration", href: "/configuration", icon: ArrowRight, permission: "system.all" },
+      { label: "Banners", href: "/banners", icon: ArrowRight, permission: "system.all" },
+      { label: "Admin Users", href: "/admin-users", icon: ArrowRight, permission: "users.read" },
+      { label: "Roles & Permissions", href: "/roles", icon: ArrowRight, permission: "roles.read" },
+      { label: "Sliders", href: "/sliders", icon: ArrowRight, permission: "system.all" },
+      { label: "Manage Cities", href: "/cities", icon: ArrowRight, permission: "system.all" },
+      { label: "Manage Languages", href: "/languages", icon: ArrowRight },
+      { label: "Report Scheduler", href: "/report-scheduler", icon: ArrowRight, permission: "system.all" },
+      { label: "Translations", href: "/translations", icon: ArrowRight, permission: "system.all" },
+    ],
+  },
+];

@@ -30,7 +30,16 @@ export default function LoginForm({ ip }: { ip: ReactNode }) {
         setError(result.error ?? "Login failed. Please try again.");
         setLoading(false);
       }
-    } catch {
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "digest" in err &&
+        typeof (err as Record<string, unknown>).digest === "string" &&
+        ((err as Record<string, unknown>).digest as string).startsWith("NEXT_REDIRECT")
+      ) {
+        throw err;
+      }
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
