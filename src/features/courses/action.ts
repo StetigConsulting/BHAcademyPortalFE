@@ -1,9 +1,18 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { apiFetch, ApiError } from "@/lib/api";
+
 import { getCurrentUser } from "@/lib/auth-server";
 import { hasPermission } from "@/lib/auth-jwt";
-import type { ApiResponse, CoursePageResponse } from "./types";
+import type {
+  ApiResponse,
+  CoursePageResponse,
+  CourseItem,
+  CreateCoursePayload,
+  UpdateCoursePayload,
+} from "./types";
+
 
 export type GetCoursesParams = {
   search?: string;
@@ -82,3 +91,233 @@ export async function getCoursesAction(params: GetCoursesParams = {}) {
     };
   }
 }
+
+export async function getCourseByIdAction(id: number | string) {
+  const user = await getCurrentUser();
+  const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+  if (!hasPermission(userPerms, "courses.read")) {
+    return {
+      success: false,
+      error: "You do not have permission to view this course.",
+    };
+  }
+
+  try {
+    const res = await apiFetch<ApiResponse<CourseItem>>(`/v1/courses/${id}`);
+    return {
+      success: true,
+      data: res.data,
+      message: res.message,
+    };
+  } catch (error) {
+    console.error(`Failed to fetch course ${id}:`, error);
+    const message =
+      error instanceof ApiError ? error.message : "Failed to load course details. Please try again.";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function createCourseAction(payload: CreateCoursePayload) {
+  const user = await getCurrentUser();
+  const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+  if (!hasPermission(userPerms, "courses.create")) {
+    return {
+      success: false,
+      error: "You do not have permission to create courses.",
+    };
+  }
+
+  try {
+    const res = await apiFetch<ApiResponse<CourseItem>>("/v1/courses", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    revalidatePath("/courses");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      data: res?.data,
+      message: res?.message || "Course created successfully",
+    };
+  } catch (error) {
+    console.error("Failed to create course:", error);
+    const message =
+      error instanceof ApiError ? error.message : "Failed to create course. Please try again.";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function updateCourseAction(id: number | string, payload: UpdateCoursePayload) {
+  const user = await getCurrentUser();
+  const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+  if (!hasPermission(userPerms, "courses.update")) {
+    return {
+      success: false,
+      error: "You do not have permission to update courses.",
+    };
+  }
+
+  try {
+    const res = await apiFetch<ApiResponse<CourseItem>>(`/v1/courses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+
+    revalidatePath("/courses");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      data: res?.data,
+      message: res?.message || "Course updated successfully",
+    };
+  } catch (error) {
+    console.error(`Failed to update course ${id}:`, error);
+    const message =
+      error instanceof ApiError ? error.message : "Failed to update course. Please try again.";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function deleteCourseAction(id: number | string) {
+  const user = await getCurrentUser();
+  const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+  if (!hasPermission(userPerms, "courses.delete")) {
+    return {
+      success: false,
+      error: "You do not have permission to delete courses.",
+    };
+  }
+
+  try {
+    const res = await apiFetch<ApiResponse<void>>(`/v1/courses/${id}`, {
+      method: "DELETE",
+    });
+
+    revalidatePath("/courses");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      message: res?.message || "Course deleted successfully",
+    };
+  } catch (error) {
+    console.error(`Failed to delete course ${id}:`, error);
+    const message =
+      error instanceof ApiError ? error.message : "Failed to delete course. Please try again.";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+
+export async function exportCoursesAction() {
+  const user = await getCurrentUser();
+  const userPerms = user ? [...user.roles, ...user.permissions] : [];
+
+  if (!hasPermission(userPerms, ["courses.export", "courses.read"])) {
+    return {
+      success: false,
+      error: "You do not have permission to export courses.",
+    };
+  }
+
+  try {
+    const { cookies } = await import("next/headers");
+    const { ACCESS_COOKIE } = await import("@/lib/auth-cookies");
+    const { config } = await import("@/config/env");
+
+    const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+
+    const res = await fetch(`${config.apiBaseUrl}/v1/courses/export`, {
+      method: "GET",
+      headers: {
+        Accept: "*/*",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Export failed with status: ${res.status}`);
+    }
+
+    const csvContent = await res.text();
+
+    return {
+      success: true,
+      data: csvContent,
+      filename: `courses_export_${new Date().toISOString().slice(0, 10)}.csv`,
+    };
+  } catch (error) {
+    console.error("Failed to export courses:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to export courses.",
+    };
+  }
+}
+
+export type CourseVideoItem = {
+  videoId: number;
+  sequenceNo: number;
+  title: string;
+  videoUrl: string;
+  thumbnail?: string;
+  duration?: string;
+  points?: number;
+  isQuizPresent?: boolean;
+  courseId: number;
+  courseName?: string;
+  languageId?: string;
+  languageName?: string;
+};
+
+export async function getCourseVideosAction(params: {
+  courseId: number | string;
+  languageId?: string;
+}) {
+  try {
+    const res = await apiFetch<ApiResponse<CourseVideoItem[]>>("/v1/course/videos", {
+      method: "POST",
+      body: JSON.stringify({
+        courseId: Number(params.courseId) || params.courseId,
+        languageId: params.languageId || "",
+      }),
+    });
+
+    return {
+      success: true,
+      data: Array.isArray(res?.data) ? res.data : [],
+      message: res?.message,
+    };
+  } catch (error) {
+    console.error("Failed to fetch course videos:", error);
+    return {
+      success: false,
+      error: error instanceof ApiError ? error.message : "Failed to load course videos.",
+      data: [],
+    };
+  }
+}
+
+
+
+

@@ -260,7 +260,10 @@ export default function CategoriesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadCategories(page, true)}
+              onClick={() => {
+                setPage(1);
+                loadCategories(1, true);
+              }}
               disabled={isPending}
               className="gap-1.5 text-slate-600"
             >

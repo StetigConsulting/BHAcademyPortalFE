@@ -16,12 +16,20 @@ export class ApiError extends Error {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
 
+  const headers: Record<string, string> = {
+    accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  // Only default to application/json if body is not FormData
+  if (!(init.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
-      accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
       ...init.headers,
     },
     cache: "no-store",

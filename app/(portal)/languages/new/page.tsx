@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Globe, Loader2 } from "lucide-react";
@@ -21,11 +21,38 @@ export default function NewLanguagePage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Form key to force-clear any cached DOM input fields upon remount or reset
+  const [formKey, setFormKey] = useState<number>(() => Date.now());
+
   const [language, setLanguage] = useState("");
   const [languageCode, setLanguageCode] = useState("");
   const [nativeName, setNativeName] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [isActive, setIsActive] = useState(true);
+
+  const resetForm = () => {
+    setLanguage("");
+    setLanguageCode("");
+    setNativeName("");
+    setIsDefault(false);
+    setIsActive(true);
+    setError(null);
+    setFormKey(Date.now());
+  };
+
+  // Always reset fields when opening or unmounting the New Language page
+  useEffect(() => {
+    resetForm();
+    return () => {
+      resetForm();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    resetForm();
+    router.push("/languages");
+  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +75,7 @@ export default function NewLanguagePage() {
       const res = await createLanguageAction(payload);
       if (res.success) {
         success("Language created successfully");
+        resetForm();
         router.push("/languages");
       } else {
         const msg = res.error || "Failed to create language. Please try again.";
@@ -64,13 +92,11 @@ export default function NewLanguagePage() {
           type="button"
           variant="ghost"
           size="sm"
-          asChild
+          onClick={handleCancel}
           className="gap-1.5 text-slate-600 hover:text-slate-900"
         >
-          <Link href="/languages">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Languages
-          </Link>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Languages
         </Button>
       </div>
 
@@ -83,7 +109,7 @@ export default function NewLanguagePage() {
         ]}
       />
 
-      <form onSubmit={handleSubmit} className="w-full space-y-6">
+      <form key={formKey} onSubmit={handleSubmit} autoComplete="off" className="w-full space-y-6">
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -113,6 +139,7 @@ export default function NewLanguagePage() {
                 </Label>
                 <Input
                   id="language"
+                  autoComplete="off"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   placeholder="e.g. English, Hindi, Bengali"
@@ -124,6 +151,7 @@ export default function NewLanguagePage() {
                 <Label htmlFor="languageCode">Language Code</Label>
                 <Input
                   id="languageCode"
+                  autoComplete="off"
                   value={languageCode}
                   onChange={(e) => setLanguageCode(e.target.value)}
                   placeholder="e.g. en, hi, bn"
@@ -134,6 +162,7 @@ export default function NewLanguagePage() {
                 <Label htmlFor="nativeName">Native Name</Label>
                 <Input
                   id="nativeName"
+                  autoComplete="off"
                   value={nativeName}
                   onChange={(e) => setNativeName(e.target.value)}
                   placeholder="e.g. English, हिन्दी, বাংলা"
@@ -168,8 +197,13 @@ export default function NewLanguagePage() {
         </Card>
 
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" asChild disabled={isPending}>
-            <Link href="/languages">Cancel</Link>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPending}
+            onClick={handleCancel}
+          >
+            Cancel
           </Button>
 
           <Button type="submit" disabled={isPending} className="bg-blue-600 text-white hover:bg-blue-700">
@@ -181,3 +215,4 @@ export default function NewLanguagePage() {
     </div>
   );
 }
+

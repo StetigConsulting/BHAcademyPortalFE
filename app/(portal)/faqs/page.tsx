@@ -257,7 +257,10 @@ export default function FaqsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadFaqs(page, language, true)}
+              onClick={() => {
+                setPage(1);
+                loadFaqs(1, language, true);
+              }}
               disabled={isPending}
               className="gap-1.5 text-slate-600"
             >

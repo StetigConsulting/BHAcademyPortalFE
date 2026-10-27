@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { ArrowLeft, HelpCircle, Languages, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -28,11 +29,37 @@ const TRANSLATION_LANGUAGES = [
   { code: "Mr", name: "Marathi (मराठी)" },
 ] as const;
 
+const INITIAL_TRANSLATIONS: Record<string, string> = {
+  questionBn: "",
+  questionHi: "",
+  questionKn: "",
+  questionMl: "",
+  questionOr: "",
+  questionTa: "",
+  questionTe: "",
+  questionAs: "",
+  questionGu: "",
+  questionMr: "",
+  answerBn: "",
+  answerHi: "",
+  answerKn: "",
+  answerMl: "",
+  answerOr: "",
+  answerTa: "",
+  answerTe: "",
+  answerAs: "",
+  answerGu: "",
+  answerMr: "",
+};
+
 export default function NewFaqPage() {
   const router = useRouter();
   const { success, error: toastError } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Form key to force-clear any cached DOM input fields upon remount or reset
+  const [formKey, setFormKey] = useState<number>(() => Date.now());
 
   // Mandatory primary fields
   const [question, setQuestion] = useState("");
@@ -41,28 +68,30 @@ export default function NewFaqPage() {
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
   // Multilingual translations
-  const [translations, setTranslations] = useState<Record<string, string>>({
-    questionBn: "",
-    questionHi: "",
-    questionKn: "",
-    questionMl: "",
-    questionOr: "",
-    questionTa: "",
-    questionTe: "",
-    questionAs: "",
-    questionGu: "",
-    questionMr: "",
-    answerBn: "",
-    answerHi: "",
-    answerKn: "",
-    answerMl: "",
-    answerOr: "",
-    answerTa: "",
-    answerTe: "",
-    answerAs: "",
-    answerGu: "",
-    answerMr: "",
-  });
+  const [translations, setTranslations] = useState<Record<string, string>>(INITIAL_TRANSLATIONS);
+
+  const resetForm = () => {
+    setQuestion("");
+    setAnswer("");
+    setDisplayOrder(1);
+    setStatus("ACTIVE");
+    setTranslations({ ...INITIAL_TRANSLATIONS });
+    setError(null);
+    setFormKey(Date.now());
+  };
+
+  // Always reset fields when opening or unmounting the New FAQ page
+  useEffect(() => {
+    resetForm();
+    return () => {
+      resetForm();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    resetForm();
+    router.push("/faqs");
+  };
 
   const handleTranslationChange = (key: string, value: string) => {
     setTranslations((prev) => ({ ...prev, [key]: value }));
@@ -94,6 +123,7 @@ export default function NewFaqPage() {
       const res = await createFaqAction(payload);
       if (res.success) {
         success("FAQ created successfully");
+        resetForm();
         router.push("/faqs");
       } else {
         const msg = res.error || "Failed to create FAQ. Please check the fields and try again.";
@@ -110,13 +140,11 @@ export default function NewFaqPage() {
           type="button"
           variant="ghost"
           size="sm"
-          asChild
+          onClick={handleCancel}
           className="gap-1.5 text-slate-600 hover:text-slate-900"
         >
-          <Link href="/faqs">
-            <ArrowLeft className="h-4 w-4" />
-            Back to FAQs
-          </Link>
+          <ArrowLeft className="h-4 w-4" />
+          Back to FAQs
         </Button>
       </div>
 
@@ -129,7 +157,8 @@ export default function NewFaqPage() {
         ]}
       />
 
-      <form onSubmit={handleSubmit} className="w-full space-y-6">
+      <form key={formKey} onSubmit={handleSubmit} autoComplete="off" className="w-full space-y-6">
+
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -274,13 +303,12 @@ export default function NewFaqPage() {
           <Button
             type="button"
             variant="outline"
-            asChild
             disabled={isPending}
+            onClick={handleCancel}
           >
-            <Link href="/faqs">
-              Cancel
-            </Link>
+            Cancel
           </Button>
+
 
           <Button
             type="submit"

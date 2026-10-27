@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { ArrowLeft, Layers, Languages, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -28,11 +29,27 @@ const TRANSLATION_LANGUAGES = [
   { code: "Mr", name: "Marathi (मराठी)" },
 ] as const;
 
+const INITIAL_TRANSLATIONS: Record<string, string> = {
+  categoryAs: "",
+  categoryBn: "",
+  categoryGu: "",
+  categoryHi: "",
+  categoryKn: "",
+  categoryMl: "",
+  categoryMr: "",
+  categoryOr: "",
+  categoryTa: "",
+  categoryTe: "",
+};
+
 export default function NewCategoryPage() {
   const router = useRouter();
   const { success, error: toastError } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Form key to force-clear any cached DOM input fields upon remount or reset
+  const [formKey, setFormKey] = useState<number>(() => Date.now());
 
   // Mandatory primary fields
   const [category, setCategory] = useState("");
@@ -42,18 +59,31 @@ export default function NewCategoryPage() {
   const [featured, setFeatured] = useState<boolean>(false);
 
   // Multilingual translations
-  const [translations, setTranslations] = useState<Record<string, string>>({
-    categoryAs: "",
-    categoryBn: "",
-    categoryGu: "",
-    categoryHi: "",
-    categoryKn: "",
-    categoryMl: "",
-    categoryMr: "",
-    categoryOr: "",
-    categoryTa: "",
-    categoryTe: "",
-  });
+  const [translations, setTranslations] = useState<Record<string, string>>(INITIAL_TRANSLATIONS);
+
+  const resetForm = () => {
+    setCategory("");
+    setImageUrl("");
+    setDisplayOrder(1);
+    setStatus("ACTIVE");
+    setFeatured(false);
+    setTranslations({ ...INITIAL_TRANSLATIONS });
+    setError(null);
+    setFormKey(Date.now());
+  };
+
+  // Always reset fields when opening or unmounting the New Category page
+  useEffect(() => {
+    resetForm();
+    return () => {
+      resetForm();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    resetForm();
+    router.push("/categories");
+  };
 
   const handleTranslationChange = (key: string, value: string) => {
     setTranslations((prev) => ({ ...prev, [key]: value }));
@@ -81,6 +111,7 @@ export default function NewCategoryPage() {
       const res = await createCategoryAction(payload);
       if (res.success) {
         success(res.message || "Category created successfully");
+        resetForm();
         router.push("/categories");
       } else {
         const msg = res.error || "Failed to create category. Please check the fields and try again.";
@@ -97,13 +128,11 @@ export default function NewCategoryPage() {
           type="button"
           variant="ghost"
           size="sm"
-          asChild
+          onClick={handleCancel}
           className="gap-1.5 text-slate-600 hover:text-slate-900"
         >
-          <Link href="/categories">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Categories
-          </Link>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Categories
         </Button>
       </div>
 
@@ -116,7 +145,8 @@ export default function NewCategoryPage() {
         ]}
       />
 
-      <form onSubmit={handleSubmit} className="w-full space-y-6">
+      <form key={formKey} onSubmit={handleSubmit} autoComplete="off" className="w-full space-y-6">
+
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -248,13 +278,12 @@ export default function NewCategoryPage() {
           <Button
             type="button"
             variant="outline"
-            asChild
             disabled={isPending}
+            onClick={handleCancel}
           >
-            <Link href="/categories">
-              Cancel
-            </Link>
+            Cancel
           </Button>
+
 
           <Button
             type="submit"

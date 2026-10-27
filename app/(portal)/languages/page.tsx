@@ -210,7 +210,10 @@ export default function LanguagesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadLanguages(page, search, true)}
+              onClick={() => {
+                setPage(1);
+                loadLanguages(1, search, true);
+              }}
               disabled={isPending}
               className="gap-1.5 text-slate-600"
             >

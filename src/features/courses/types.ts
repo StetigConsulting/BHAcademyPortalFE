@@ -1,3 +1,10 @@
+export type CourseLanguageItem = {
+  languageId: string;
+  language: string;
+  languageCode: string | null;
+  videoCount: number;
+};
+
 export type CourseItem = {
   id: number;
   categoryId: string;
@@ -12,6 +19,7 @@ export type CourseItem = {
   noOfVideos?: number;
   points?: number;
   status: "ACTIVE" | "INACTIVE" | string;
+  languages?: CourseLanguageItem[];
   // Multilingual courseName
   courseNameAs?: string;
   courseNameBn?: string;
@@ -67,3 +75,49 @@ export type ApiResponse<T> = {
   path?: string;
   timestamp?: string;
 };
+
+export type CreateCoursePayload = {
+  categoryId: string;
+  courseName: string;
+  points?: number;
+  noOfVideos?: number;
+  noOfCertifications?: string;
+  courseLevel?: string;
+  duration?: string;
+  courseDetails?: string;
+  imageUrl?: string;
+  mode?: string;
+  courseNameAs?: string;
+  courseNameBn?: string;
+  courseNameGu?: string;
+  courseNameHi?: string;
+  courseNameKn?: string;
+  courseNameMl?: string;
+  courseNameMr?: string;
+  courseNameOr?: string;
+  courseNameTa?: string;
+  courseNameTe?: string;
+  courseDetailsAs?: string;
+  courseDetailsBn?: string;
+  courseDetailsGu?: string;
+  courseDetailsHi?: string;
+  courseDetailsKn?: string;
+  courseDetailsMl?: string;
+  courseDetailsMr?: string;
+  courseDetailsOr?: string;
+  courseDetailsTa?: string;
+  courseDetailsTe?: string;
+  courseLevelAs?: string;
+  courseLevelBn?: string;
+  courseLevelGu?: string;
+  courseLevelHi?: string;
+  courseLevelKn?: string;
+  courseLevelMl?: string;
+  courseLevelMr?: string;
+  courseLevelOr?: string;
+  courseLevelTa?: string;
+  courseLevelTe?: string;
+};
+
+export type UpdateCoursePayload = CreateCoursePayload;
+
